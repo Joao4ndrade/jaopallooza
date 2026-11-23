@@ -1,0 +1,72 @@
+# Produção (VPS) com HTTPS automático. Passo a passo no README, seção "Colocando no ar".
+#
+#   cp deploy/production.env.example .env      # e preencha os valores
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Diferenças para o docker-compose.yml de desenvolvimento:
+# - só o Caddy fica exposto (portas 80/443); banco e API não aparecem para a internet
+# - HTTPS com certificado gratuito (Let's Encrypt), renovado sozinho
+# - senhas obrigatórias no .env (não há valor padrão)
+# - tudo reinicia sozinho se o servidor reiniciar
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: jaopallooza
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jaopallooza"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@db:5432/jaopallooza
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no .env}
+      ADMIN_NAMES: ${ADMIN_NAMES:?Defina ADMIN_NAMES no .env}
+      INVITE_CODE: ${INVITE_CODE:-}
+      FRONTEND_URL: https://${DOMAIN:?Defina DOMAIN no .env}
+      CORS_ORIGINS: https://${DOMAIN}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

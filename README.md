@@ -91,7 +91,9 @@ jaopallooza/
 │       ├── pages/      # Evento, Awards, Ingresso, Conta, Login, Senha, Check-in
 │       ├── components/ # AppShell (sidebar/barra), Poster, botões, modal...
 │       └── lib/        # cliente da API, auth, formatação
-├── docker-compose.yml
+├── deploy/           # produção: Caddyfile, .env de exemplo e script de backup
+├── docker-compose.yml       # para rodar no seu PC
+├── docker-compose.prod.yml  # para a VPS (HTTPS automático)
 └── .github/workflows/ci.yml
 ```
 
@@ -219,12 +221,103 @@ npm run build
 
 Os testes precisam de um Postgres com o banco `jaopallooza_test` (crie com `docker compose exec db createdb -U postgres jaopallooza_test`). Eles rodam as migrations de verdade, e cada teste roda dentro de uma transação desfeita no fim. Para outro banco, use `TEST_DATABASE_URL`. O GitHub Actions roda tudo isso a cada push.
 
-## Deploy (sugestão)
+## 🚀 Colocando no ar (VPS, ex.: Hostinger)
 
-- **Banco:** [Neon](https://neon.tech) ou [Supabase](https://supabase.com), ambos com plano grátis.
-- **API:** [Render](https://render.com) ou [Railway](https://railway.app) usando o `backend/Dockerfile`, que já roda as migrations ao subir.
-- **Front:** o `web/Dockerfile` (nginx com proxy de `/api`), ou Vercel/Netlify com `VITE_API_URL` apontando para a API e `CORS_ORIGINS` configurado.
-- Em produção: `JWT_SECRET` forte, `FRONTEND_URL` com o domínio real e SMTP configurado.
+> ⚠️ Na VPS use **sempre** o `docker-compose.prod.yml`. O `docker-compose.yml` comum é só para o seu PC: ele expõe o banco com a senha `postgres` e não tem HTTPS.
+
+O `docker-compose.prod.yml` sobe banco, API, site e o **Caddy**, que cuida do **HTTPS automático** (certificado grátis do Let's Encrypt, renovado sozinho). Só as portas 80 e 443 ficam abertas para a internet.
+
+### 1. Endereço do site
+
+- **Com domínio (recomendado):** no painel onde comprou o domínio (na Hostinger: hPanel → Domínios → DNS), crie um registro **A** com nome `@` apontando para o **IP da VPS**. Leva de minutos a algumas horas para propagar.
+- **Sem domínio (grátis, para testar):** use o IP da VPS com traços + `.sslip.io`. Ex.: IP `203.0.113.10` vira `203-0-113-10.sslip.io`. Já funciona com HTTPS, sem configurar nada.
+
+### 2. Preparar a VPS
+
+Use **Ubuntu 24.04** (na Hostinger, o template “Ubuntu 24.04 with Docker” já vem com Docker). No firewall do painel, libere as portas **22, 80 e 443**. Depois, do seu PC:
+
+```bash
+ssh root@IP_DA_VPS
+```
+
+Se o Docker não veio instalado:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+### 3. Baixar o código (repo privado → *deploy key*)
+
+Na VPS, gere uma chave só para leitura deste repositório:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/jaopallooza -N "" -C "vps-jaopallooza"
+cat ~/.ssh/jaopallooza.pub
+```
+
+Copie a linha que aparecer e cadastre no GitHub em **Settings → Deploy keys → Add deploy key** do repositório (deixe “Allow write access” **desmarcado**). Depois:
+
+```bash
+GIT_SSH_COMMAND="ssh -i ~/.ssh/jaopallooza" git clone git@github.com:Joao4ndrade/jaopallooza.git /opt/jaopallooza
+cd /opt/jaopallooza
+git config core.sshCommand "ssh -i ~/.ssh/jaopallooza"
+```
+
+### 4. Configurar
+
+```bash
+cp deploy/production.env.example .env
+openssl rand -hex 32   # rode 2x: um valor para POSTGRES_PASSWORD, outro para JWT_SECRET
+nano .env
+```
+
+Preencha `DOMAIN`, `POSTGRES_PASSWORD`, `JWT_SECRET` e o SMTP (veja [E-mail de recuperação de senha](#-e-mail-de-recuperação-de-senha-gmail)). Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
+
+### 5. Subir
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Acompanhe com `docker compose -f docker-compose.prod.yml logs -f` (sai com `Ctrl+C`; o site continua no ar). Em um ou dois minutos, abra `https://SEU_DOMINIO`.
+
+### ✅ Antes de chamar a galera
+
+1. Crie **sua** conta primeiro, com o nome que está em `ADMIN_NAMES`.
+2. Preencha data/local em `https://SEU_DOMINIO/api/docs` (`PUT /api/admin/event`), ou deixe “Em breve”.
+3. Teste o “Esqueci minha senha” com seu e-mail, pra ter certeza de que o SMTP funciona.
+4. Abra o site no celular e garanta seu ingresso pra ver o fluxo completo.
+5. Ative o backup (abaixo). Aí é só mandar o link no grupo 🎉
+
+### Backup diário
+
+O `deploy/backup.sh` salva o banco (contas, ingressos e votos) em `backups/`, mantendo 14 dias. Para rodar todo dia às 4h:
+
+```bash
+crontab -e
+```
+
+E adicione a linha:
+
+```
+0 4 * * * /opt/jaopallooza/deploy/backup.sh >> /var/log/jaopallooza-backup.log 2>&1
+```
+
+Para restaurar um backup:
+
+```bash
+gunzip -c backups/ARQUIVO.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U postgres jaopallooza
+```
+
+### Atualizar depois de mudar o código
+
+```bash
+cd /opt/jaopallooza
+git pull
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+As migrations do banco rodam sozinhas quando a API sobe.
 
 ## Ideias para depois
 
