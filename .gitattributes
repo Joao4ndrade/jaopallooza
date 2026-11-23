@@ -1,0 +1,3 @@
+# Mantém LF no repositório mesmo clonando no Windows (evita diff fantasma e quebra de scripts no Docker)
+* text=auto eol=lf
+*.png binary

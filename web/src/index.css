@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Anton', 'Impact', 'Arial Narrow', sans-serif;
+
+  /* Vermelho de cartaz de festival + preto "xilogravura" */
+  --color-brand-50: #fff1f0;
+  --color-brand-100: #ffdfdc;
+  --color-brand-200: #ffc2bc;
+  --color-brand-500: #e3261c;
+  --color-brand-600: #c81e15;
+  --color-brand-700: #a3170f;
+  --color-brand-800: #7d120c;
+  --color-brand-900: #4a0a06;
+  --color-ink: #121212;
+  --color-muted: #6b6b6b;
+  --color-line: #ebebeb;
+  --color-surface: #f6f6f6;
+
+  --animate-confetti: confetti 2.8s ease-in forwards;
+  --animate-pop: pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+
+  @keyframes confetti {
+    0% {
+      transform: translateY(-10vh) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(110vh) rotate(600deg);
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.85);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #fff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Altura da barra inferior no mobile (usada pelo layout e pelos CTAs fixos) */
+:root {
+  --bottom-nav: calc(4rem + env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
