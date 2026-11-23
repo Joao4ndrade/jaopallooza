@@ -1,10 +1,12 @@
 import { CircleCheck } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ClaimTicketButton } from '../components/ClaimTicketButton'
 import { Confetti } from '../components/Confetti'
+import { LOGIN_NOTICE } from '../components/LoginNotice'
 import { Poster } from '../components/Poster'
+import { buttonClass } from '../components/button-class'
 import { PageHeader, PageLoader } from '../components/ui'
 import { api, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
@@ -36,7 +38,7 @@ export function TicketPage() {
 
       <div className="px-4 pb-10 md:px-10">
         {!hasTicket ? (
-          <NoTicket event={event} />
+          <NoTicket event={event} loggedIn={me !== null} />
         ) : ticket && event ? (
           <>
             {justClaimed && <Confetti />}
@@ -52,15 +54,32 @@ export function TicketPage() {
   )
 }
 
-function NoTicket({ event }: { event: EventInfo | null }) {
+function NoTicket({ event, loggedIn }: { event: EventInfo | null; loggedIn: boolean }) {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center rounded-3xl bg-white px-6 py-10 text-center ring-1 ring-line">
       <Poster className="w-32 rotate-[-4deg] rounded-xl shadow-lg" />
-      <h2 className="mt-6 text-xl font-extrabold">Sua carteira tá vazia</h2>
-      <p className="mt-1 text-muted">
-        Garanta seu ingresso pro {event?.name ?? 'JAOPALLOOZA'} e ele aparece aqui com o QR code da entrada.
-      </p>
-      <ClaimTicketButton className="mt-6 w-full" />
+      {loggedIn ? (
+        <>
+          <h2 className="mt-6 text-xl font-extrabold">Sua carteira tá vazia</h2>
+          <p className="mt-1 text-muted">
+            Garanta seu ingresso pro {event?.name ?? 'JAOPALLOOZA'} e ele aparece aqui com o QR code da entrada.
+          </p>
+          <ClaimTicketButton className="mt-6 w-full" />
+        </>
+      ) : (
+        <>
+          <h2 className="mt-6 text-xl font-extrabold">Seu ingresso fica na sua conta 🎟️</h2>
+          <p className="mt-1 text-muted">{LOGIN_NOTICE} Cada conta garante um QR code.</p>
+          <div className="mt-6 grid w-full gap-2">
+            <Link to="/entrar" state={{ claim: true, mode: 'register' }} className={buttonClass('primary', 'lg')}>
+              Criar conta
+            </Link>
+            <Link to="/entrar" state={{ claim: true, mode: 'login' }} className={buttonClass('secondary', 'lg')}>
+              Já tenho conta
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   )
 }

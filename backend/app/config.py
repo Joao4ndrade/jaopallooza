@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     jwt_expires_days: int = 30
     # Nomes (separados por vírgula) que viram admin ao fazer login. Ex.: "João"
     admin_names: str = ""
-    # Se preenchido, o cadastro exige esse código (ex.: vai no link do grupo).
+    # Se preenchido, criar conta exige esse código (passado por mensagem para a galera).
     invite_code: str = ""
     # Origens liberadas no CORS, separadas por vírgula.
     cors_origins: str = "http://localhost:5173"

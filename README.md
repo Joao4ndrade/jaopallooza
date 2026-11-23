@@ -11,7 +11,7 @@ Responsivo de verdade: **sidebar no desktop** e **barra inferior no celular**, c
 | **Ingresso** | Carteira com o ingresso e o QR code da entrada (ou o botão de garantir, se ainda não tiver) |
 | **Conta** | Nome, e-mail, categorias em que concorre, escolha de par (pra categoria de casal), sair da votação, sair da conta e cancelar presença |
 
-Conta com **nome, e-mail e senha**: o login aceita nome **ou** e-mail, o cadastro avisa na hora se o nome já está em uso e dá pra **recuperar a senha por e-mail**.
+**O ingresso é da conta:** quem chega sem conta vê o aviso *“Faça o login ou crie sua conta para garantir seu ingresso”*, e **cada conta garante um único QR code**. A conta tem **nome, e-mail e senha**: o login aceita nome **ou** e-mail, o cadastro avisa na hora se o nome já está em uso e dá pra **recuperar a senha por e-mail**.
 
 ---
 
@@ -34,8 +34,8 @@ Depois **reinicie o PC** e abra o **Docker Desktop** (ele pode pedir pra ativar 
 
 ```powershell
 cd C:\Projetos
-git clone https://github.com/Joao4ndrade/jaopalloza.git
-cd jaopalloza
+git clone https://github.com/Joao4ndrade/jaopallooza.git
+cd jaopallooza
 ```
 
 ### 3. Suba tudo
@@ -77,7 +77,7 @@ Depois rode `docker compose up --build` de novo. Tudo que dá pra configurar est
 ## Estrutura
 
 ```
-jaopalloza/
+jaopallooza/
 ├── backend/            # FastAPI
 │   ├── app/
 │   │   ├── routers/    # auth, event, tickets, awards, me, admin
@@ -162,14 +162,11 @@ O Gmail aguenta centenas de e-mails por dia, bem mais do que uma festa precisa. 
 
 Como funciona por dentro: o link vale **1 hora** e **só funciona uma vez**. O banco guarda só o *hash* do token, e a resposta é sempre a mesma, exista o e-mail ou não (ninguém descobre quem tem conta). Dá pra pedir um novo a cada 60 s, e trocar a senha **desloga os outros aparelhos**.
 
-### 🎟️ Código de convite (`INVITE_CODE`)
+### 🎟️ Código de convite (`INVITE_CODE`, opcional e desligado por padrão)
 
-O site é público: sem convite, **qualquer pessoa que achar o link** cria conta e ganha um ingresso com QR válido. Se você definir, por exemplo, `INVITE_CODE=jaopa2027`:
+Sem ele, qualquer pessoa que achar o site consegue criar conta e garantir **um** ingresso. Na portaria, o check-in mostra o nome do titular, então um desconhecido aparece ali.
 
-- o cadastro passa a pedir esse código;
-- pra galera não precisar digitar, mande o link assim: **`https://seu-site.com/?convite=jaopa2027`**. O site lê o código do link e preenche sozinho.
-
-Limite honesto: protege contra desconhecidos e robôs, não contra amigo que repassa o link do grupo.
+Se quiser barrar desconhecidos já no cadastro, defina por exemplo `INVITE_CODE=jaopa2027`: a tela de criar conta passa a pedir esse código, que você passa pra galera **por mensagem** (ele não vai no link). Quem já tem conta não precisa dele.
 
 ## Regras do Awards
 

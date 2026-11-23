@@ -2,28 +2,36 @@ import { CalendarDays, ChevronRight, Map, MapPin, Share2, Trophy, Users, type Lu
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ClaimTicketButton } from '../components/ClaimTicketButton'
+import { LoginNotice } from '../components/LoginNotice'
 import { Poster } from '../components/Poster'
 import { useToast } from '../components/toast-context'
 import { PageLoader } from '../components/ui'
+import { useAuth } from '../lib/auth-context'
 import { EM_BREVE, eventWhen, plural } from '../lib/format'
 import type { EventInfo } from '../lib/types'
 import { useEvent } from '../lib/useEvent'
 
 export function EventPage() {
   const { event, error } = useEvent()
+  const { me, loading } = useAuth()
+  const visitor = !me && !loading
 
   if (!event) {
     return error ? <p className="p-10 text-center text-muted">{error}</p> : <PageLoader />
   }
 
   return (
-    <div className="pb-24 md:pb-0">
+    <div className={visitor ? 'pb-36 md:pb-0' : 'pb-24 md:pb-0'}>
       <Hero event={event} />
 
       <div className="relative -mt-5 rounded-t-3xl bg-white md:mt-0 md:rounded-none">
         <div className="mx-auto grid max-w-5xl gap-10 px-4 pt-6 pb-10 md:grid-cols-[1fr_320px] md:px-10 md:pt-10">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight md:hidden">{event.name}</h1>
+            {/* No celular o aviso fica na barra fixa lá embaixo, sempre visível */}
+            <div className="hidden md:block">
+              <LoginNotice className="mb-8" />
+            </div>
             <EventFacts event={event} />
 
             <hr className="my-6 border-line" />
@@ -60,9 +68,9 @@ export function EventPage() {
         </div>
       </div>
 
-      {/* CTA fixo no mobile, logo acima da barra de navegação */}
+      {/* CTA fixo no mobile, logo acima da barra de navegação. Sem conta, vira o aviso de login. */}
       <div className="fixed inset-x-0 bottom-(--bottom-nav) z-10 border-t border-line bg-white/95 px-4 py-3 backdrop-blur md:hidden">
-        <ClaimTicketButton className="w-full" />
+        {visitor ? <LoginNotice variant="bar" /> : <ClaimTicketButton className="w-full" />}
       </div>
     </div>
   )

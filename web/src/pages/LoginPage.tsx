@@ -2,10 +2,10 @@ import { CircleCheck, CircleX, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout, FormError, inputClass } from '../components/AuthLayout'
+import { LOGIN_NOTICE } from '../components/LoginNotice'
 import { Button } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
-import { storedInvite } from '../lib/invite'
 import { useClaimTicket } from '../lib/useClaimTicket'
 import { useEvent } from '../lib/useEvent'
 import { useNameCheck } from '../lib/useNameCheck'
@@ -14,6 +14,7 @@ type Mode = 'login' | 'register'
 
 interface LocationState {
   claim?: boolean
+  mode?: Mode
   from?: string
 }
 
@@ -24,11 +25,11 @@ export function LoginPage() {
   const navigate = useNavigate()
   const state = (useLocation().state ?? {}) as LocationState
 
-  const [mode, setMode] = useState<Mode>(state.claim ? 'register' : 'login')
+  const [mode, setMode] = useState<Mode>(state.mode ?? (state.claim ? 'register' : 'login'))
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [invite, setInvite] = useState(storedInvite)
+  const [invite, setInvite] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -72,7 +73,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title={state.claim ? 'Falta pouco pro seu ingresso! 🎟️' : 'Bora pro JAOPALLOOZA'}
-      subtitle={isRegister ? 'Rapidinho: nome, e-mail e senha.' : 'Entre com seu nome ou e-mail.'}
+      subtitle={state.claim ? LOGIN_NOTICE : isRegister ? 'Rapidinho: nome, e-mail e senha.' : 'Entre com seu nome ou e-mail.'}
     >
       <div role="tablist" className="mt-6 grid grid-cols-2 rounded-xl bg-surface p-1">
         {(['register', 'login'] as const).map((m) => (
@@ -161,7 +162,7 @@ export function LoginPage() {
               value={invite}
               onChange={(e) => setInvite(e.target.value)}
               required
-              placeholder="Tá no convite que o João mandou"
+              placeholder="O código que o João passou pra você"
               className={inputClass}
             />
           </label>
