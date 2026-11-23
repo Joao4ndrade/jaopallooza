@@ -43,5 +43,22 @@ def test_delete_account_cleans_everything(client, make_user):
     assert category(client, carla, "melhor-casal")["nominees"] == []
     assert client.get("/api/event").json()["tickets_count"] == 2
     # O nome fica livre de novo
-    again = client.post("/api/auth/register", json={"name": "Ana", "password": "senha123"})
+    again = client.post(
+        "/api/auth/register",
+        json={"name": "Ana", "email": "ana@exemplo.com", "password": "senha123"},
+    )
     assert again.status_code == 201
+
+
+def test_change_email(client, make_user):
+    ana = make_user("Ana")
+    make_user("Beto")
+
+    taken = client.put("/api/me/email", headers=ana, json={"email": "BETO@exemplo.com"})
+    invalid = client.put("/api/me/email", headers=ana, json={"email": "nao-e-email"})
+    ok = client.put("/api/me/email", headers=ana, json={"email": " Ana.Nova@Exemplo.com "})
+
+    assert taken.status_code == 409
+    assert invalid.status_code == 422
+    assert ok.status_code == 200
+    assert ok.json()["email"] == "ana.nova@exemplo.com"

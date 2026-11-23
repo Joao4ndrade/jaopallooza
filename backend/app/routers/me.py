@@ -1,10 +1,10 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.deps import DB, CurrentUser, is_admin
 from app.models import Ticket, User
-from app.schemas import AwardsParticipationIn, MeOut, PartnerIn, PersonOut
+from app.schemas import AwardsParticipationIn, EmailUpdateIn, MeOut, PartnerIn, PersonOut
 from app.services import awards
 
 router = APIRouter(prefix="/me", tags=["conta"])
@@ -28,6 +28,7 @@ def build_me(db: Session, user: User) -> MeOut:
     return MeOut(
         id=user.id,
         name=user.name,
+        email=user.email,
         is_admin=is_admin(user),
         has_ticket=awards.has_ticket(db, user.id),
         awards_opt_in=user.awards_opt_in,
@@ -41,6 +42,16 @@ def build_me(db: Session, user: User) -> MeOut:
 
 @router.get("")
 def read_me(user: CurrentUser, db: DB) -> MeOut:
+    return build_me(db, user)
+
+
+@router.put("/email", summary="Cadastrar ou trocar o e-mail de recuperação")
+def set_email(data: EmailUpdateIn, user: CurrentUser, db: DB) -> MeOut:
+    taken = db.scalar(select(User.id).where(User.email == data.email, User.id != user.id))
+    if taken:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Esse e-mail já está em outra conta.")
+    user.email = data.email
+    db.commit()
     return build_me(db, user)
 
 

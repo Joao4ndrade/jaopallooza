@@ -17,6 +17,8 @@ from sqlalchemy.orm import Session  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.db import get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.names import normalize_name  # noqa: E402
+from app.services import mailer  # noqa: E402
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -79,7 +81,8 @@ def settings(monkeypatch):
 @pytest.fixture
 def make_user(client, settings) -> Callable[..., Headers]:
     def _make(name: str, *, ticket: bool = True, password: str = "senha123") -> Headers:
-        response = client.post("/api/auth/register", json={"name": name, "password": password})
+        payload = {"name": name, "email": email_for(name), "password": password}
+        response = client.post("/api/auth/register", json=payload)
         assert response.status_code == 201, response.text
         headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
         if ticket:
@@ -87,6 +90,23 @@ def make_user(client, settings) -> Callable[..., Headers]:
         return headers
 
     return _make
+
+
+@pytest.fixture
+def outbox(monkeypatch) -> list[dict]:
+    """Captura os e-mails de recuperação em vez de mandar por SMTP."""
+    sent: list[dict] = []
+
+    def fake_send(to: str, name: str, link: str, minutes: int) -> None:
+        sent.append({"to": to, "name": name, "link": link, "minutes": minutes})
+
+    monkeypatch.setattr(mailer, "send_password_reset", fake_send)
+    return sent
+
+
+def email_for(name: str) -> str:
+    """'João Pedro' -> 'joao.pedro@exemplo.com'"""
+    return normalize_name(name).replace(" ", ".") + "@exemplo.com"
 
 
 def category(client: TestClient, headers: Headers, slug: str) -> dict:

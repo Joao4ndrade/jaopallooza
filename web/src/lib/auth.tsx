@@ -36,27 +36,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [logout])
 
-  const authenticate = useCallback(
-    async (path: string, body: object) => {
-      const { access_token } = await api<{ access_token: string }>(path, { method: 'POST', body })
-      tokenStore.set(access_token)
+  const loginWithToken = useCallback(
+    async (token: string) => {
+      tokenStore.set(token)
       await refresh()
     },
     [refresh],
+  )
+
+  const authenticate = useCallback(
+    async (path: string, body: object) => {
+      const { access_token } = await api<{ access_token: string }>(path, { method: 'POST', body })
+      await loginWithToken(access_token)
+    },
+    [loginWithToken],
   )
 
   const value = useMemo<AuthContextValue>(
     () => ({
       me,
       loading,
-      login: (name, password) => authenticate('/auth/login', { name, password }),
-      register: (name, password, inviteCode) =>
-        authenticate('/auth/register', { name, password, invite_code: inviteCode || null }),
+      login: (login, password) => authenticate('/auth/login', { login, password }),
+      register: ({ name, email, password, inviteCode }) =>
+        authenticate('/auth/register', { name, email, password, invite_code: inviteCode || null }),
+      loginWithToken,
       logout,
       refresh,
       setMe,
     }),
-    [me, loading, authenticate, logout, refresh],
+    [me, loading, authenticate, loginWithToken, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

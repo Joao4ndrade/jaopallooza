@@ -2,35 +2,64 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models import CategoryKind
 from app.names import NAME_PATTERN, clean_name
 
 
-def _validate_name(value: str) -> str:
+def validate_name(value: str) -> str:
     value = clean_name(value)
     if len(value) < 2:
         raise ValueError("O nome precisa ter pelo menos 2 letras.")
+    if len(value) > 30:
+        raise ValueError("O nome pode ter no máximo 30 caracteres.")
     if not NAME_PATTERN.match(value):
         raise ValueError("Use só letras, números, espaço, ponto, hífen ou apóstrofo.")
     return value
+
+
+def _lower(value: str) -> str:
+    return value.strip().lower()
 
 
 # ---------- auth ----------
 
 
 class RegisterIn(BaseModel):
-    name: str = Field(max_length=30, examples=["João"])
+    name: str = Field(max_length=60, examples=["João"])
+    email: EmailStr = Field(examples=["joao@exemplo.com"])
     password: str = Field(min_length=6, max_length=128)
     invite_code: str | None = None
 
-    _name = field_validator("name")(_validate_name)
+    _name = field_validator("name")(validate_name)
+    _email = field_validator("email")(_lower)
 
 
 class LoginIn(BaseModel):
-    name: str = Field(max_length=60)
+    # Nome ou e-mail
+    login: str = Field(max_length=254, examples=["João"])
     password: str = Field(max_length=128)
+
+
+class NameAvailabilityOut(BaseModel):
+    available: bool
+    message: str
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+    _email = field_validator("email")(_lower)
+
+
+class PasswordResetIn(BaseModel):
+    token: str = Field(max_length=200)
+    password: str = Field(min_length=6, max_length=128)
+
+
+class MessageOut(BaseModel):
+    detail: str
 
 
 class TokenOut(BaseModel):
@@ -57,6 +86,7 @@ class CategoryRef(BaseModel):
 class MeOut(BaseModel):
     id: uuid.UUID
     name: str
+    email: str | None
     is_admin: bool
     has_ticket: bool
     awards_opt_in: bool
@@ -70,6 +100,12 @@ class MeOut(BaseModel):
 
 class AwardsParticipationIn(BaseModel):
     opt_in: bool
+
+
+class EmailUpdateIn(BaseModel):
+    email: EmailStr
+
+    _email = field_validator("email")(_lower)
 
 
 class PartnerIn(BaseModel):
@@ -204,6 +240,6 @@ class GuestOut(BaseModel):
     checked_in_at: datetime | None
 
 
-class ResetPasswordIn(BaseModel):
+class AdminResetPasswordIn(BaseModel):
     name: str
     new_password: str = Field(min_length=6, max_length=128)

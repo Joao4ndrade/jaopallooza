@@ -89,6 +89,6 @@ def test_reset_password(client, admin, make_user):
         headers=admin,
         json={"name": "ana", "new_password": "nova123"},
     )
-    login = client.post("/api/auth/login", json={"name": "Ana", "password": "nova123"})
+    login = client.post("/api/auth/login", json={"login": "Ana", "password": "nova123"})
     assert response.status_code == 200
     assert login.status_code == 200

@@ -91,6 +91,7 @@ function errorMessage(data: unknown): string {
     if (field === 'name' && issue.type === 'string_too_long') {
       return 'O nome pode ter no máximo 30 caracteres.'
     }
+    if (field === 'email') return 'Esse e-mail não parece válido. Confere aí?'
     if (issue.msg?.startsWith('Value error, ')) return issue.msg.replace('Value error, ', '')
     return 'Confere os dados e tenta de novo.'
   }

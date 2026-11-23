@@ -1,13 +1,14 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { CircleCheck, CircleX, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useClaimTicket } from '../lib/useClaimTicket'
-import { Logo } from '../components/Logo'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { AuthLayout, FormError, inputClass } from '../components/AuthLayout'
 import { Button } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { storedInvite } from '../lib/invite'
+import { useClaimTicket } from '../lib/useClaimTicket'
 import { useEvent } from '../lib/useEvent'
+import { useNameCheck } from '../lib/useNameCheck'
 
 type Mode = 'login' | 'register'
 
@@ -25,6 +26,7 @@ export function LoginPage() {
 
   const [mode, setMode] = useState<Mode>(state.claim ? 'register' : 'login')
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [invite, setInvite] = useState(storedInvite)
   const [showPassword, setShowPassword] = useState(false)
@@ -34,6 +36,9 @@ export function LoginPage() {
   // o redirect abaixo atropelaria a navegação (o navigate do Router é uma transition).
   const [authenticated, setAuthenticated] = useState(false)
 
+  const isRegister = mode === 'register'
+  const nameCheck = useNameCheck(name, isRegister)
+
   // Chegou aqui já logado: nada a fazer nesta tela.
   if (me && !submitting && !authenticated) return <Navigate to={state.from ?? '/conta'} replace />
 
@@ -42,8 +47,8 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      if (mode === 'login') await login(name, password)
-      else await register(name, password, invite)
+      if (isRegister) await register({ name, email, password, inviteCode: invite })
+      else await login(name, password)
       setAuthenticated(true)
 
       if (state.claim) {
@@ -59,108 +64,144 @@ export function LoginPage() {
     }
   }
 
-  const isRegister = mode === 'register'
-  const showInvite = isRegister && event?.invite_required
+  function switchMode(next: Mode) {
+    setMode(next)
+    setError(null)
+  }
 
   return (
-    <div className="flex min-h-[calc(100dvh-var(--bottom-nav))] items-center justify-center bg-surface px-4 py-10 md:min-h-dvh">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center md:hidden">
-          <Logo />
-        </div>
-
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-line sm:p-8">
-          <h1 className="text-2xl font-extrabold">{state.claim ? 'Falta pouco pro seu ingresso! 🎟️' : 'Bora pro JAOPALLOOZA'}</h1>
-          <p className="mt-1 text-muted">Sem e-mail, sem burocracia: só seu nome e uma senha.</p>
-
-          <div role="tablist" className="mt-6 grid grid-cols-2 rounded-xl bg-surface p-1">
-            {(['register', 'login'] as const).map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => {
-                  setMode(m)
-                  setError(null)
-                }}
-                className={`h-10 rounded-lg text-sm font-bold transition ${mode === m ? 'bg-white shadow-sm' : 'text-muted'}`}
-              >
-                {m === 'register' ? 'Criar conta' : 'Já tenho conta'}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-bold">Nome</span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="username"
-                required
-                minLength={2}
-                maxLength={30}
-                placeholder="Como a galera te chama"
-                className="h-12 rounded-xl px-4 ring-1 ring-line outline-none focus:ring-2 focus:ring-brand-600"
-              />
-              {isRegister && (
-                <span className="text-xs text-muted">É esse nome que aparece na votação do Awards. Dois Lucas? Use “Lucas B.” 😉</span>
-              )}
-            </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-bold">Senha</span>
-              <span className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={isRegister ? 'new-password' : 'current-password'}
-                  required
-                  minLength={isRegister ? 6 : undefined}
-                  placeholder={isRegister ? 'Mínimo de 6 caracteres' : ''}
-                  className="h-12 w-full rounded-xl pr-12 pl-4 ring-1 ring-line outline-none focus:ring-2 focus:ring-brand-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-0 grid w-12 place-items-center text-muted"
-                  aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
-                >
-                  {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-                </button>
-              </span>
-            </label>
-
-            {showInvite && (
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-bold">Código do convite</span>
-                <input
-                  value={invite}
-                  onChange={(e) => setInvite(e.target.value)}
-                  required
-                  placeholder="Tá no convite que o João mandou"
-                  className="h-12 rounded-xl px-4 ring-1 ring-line outline-none focus:ring-2 focus:ring-brand-600"
-                />
-              </label>
-            )}
-
-            {error && (
-              <p role="alert" className="rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">
-                {error}
-              </p>
-            )}
-
-            <Button type="submit" size="lg" loading={submitting} className="mt-2">
-              {state.claim ? 'Garantir meu ingresso' : isRegister ? 'Criar conta' : 'Entrar'}
-            </Button>
-          </form>
-
-          {!isRegister && (
-            <p className="mt-4 text-center text-xs text-muted">Esqueceu a senha? Chama o João que ele reseta pra você.</p>
-          )}
-        </div>
+    <AuthLayout
+      title={state.claim ? 'Falta pouco pro seu ingresso! 🎟️' : 'Bora pro JAOPALLOOZA'}
+      subtitle={isRegister ? 'Rapidinho: nome, e-mail e senha.' : 'Entre com seu nome ou e-mail.'}
+    >
+      <div role="tablist" className="mt-6 grid grid-cols-2 rounded-xl bg-surface p-1">
+        {(['register', 'login'] as const).map((m) => (
+          <button
+            key={m}
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => switchMode(m)}
+            className={`h-10 rounded-lg text-sm font-bold transition ${mode === m ? 'bg-white shadow-sm' : 'text-muted'}`}
+          >
+            {m === 'register' ? 'Criar conta' : 'Já tenho conta'}
+          </button>
+        ))}
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-bold">{isRegister ? 'Nome' : 'Nome ou e-mail'}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="username"
+            required
+            minLength={2}
+            maxLength={isRegister ? 30 : 254}
+            placeholder={isRegister ? 'Como a galera te chama' : 'Seu nome ou e-mail'}
+            aria-invalid={isRegister && nameCheck.status === 'taken'}
+            aria-describedby="name-hint"
+            className={inputClass}
+          />
+          {isRegister && <NameHint check={nameCheck} />}
+        </label>
+
+        {isRegister && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-bold">E-mail</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              maxLength={254}
+              placeholder="voce@exemplo.com"
+              className={inputClass}
+            />
+            <span className="text-xs text-muted">Só pra recuperar a senha se você esquecer. Nada de spam 🤝</span>
+          </label>
+        )}
+
+        <label className="flex flex-col gap-1.5">
+          <span className="flex items-center justify-between">
+            <span className="text-sm font-bold">Senha</span>
+            {!isRegister && (
+              <Link to="/esqueci-senha" className="text-sm font-semibold text-brand-600 hover:underline">
+                Esqueci minha senha
+              </Link>
+            )}
+          </span>
+          <span className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              required
+              minLength={isRegister ? 6 : undefined}
+              placeholder={isRegister ? 'Mínimo de 6 caracteres' : ''}
+              className={`${inputClass} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 grid w-12 place-items-center text-muted"
+              aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+            >
+              {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
+          </span>
+        </label>
+
+        {isRegister && event?.invite_required && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-bold">Código do convite</span>
+            <input
+              value={invite}
+              onChange={(e) => setInvite(e.target.value)}
+              required
+              placeholder="Tá no convite que o João mandou"
+              className={inputClass}
+            />
+          </label>
+        )}
+
+        {error && <FormError>{error}</FormError>}
+
+        <Button type="submit" size="lg" loading={submitting} disabled={isRegister && nameCheck.status === 'taken'} className="mt-2">
+          {state.claim ? 'Garantir meu ingresso' : isRegister ? 'Criar conta' : 'Entrar'}
+        </Button>
+      </form>
+    </AuthLayout>
+  )
+}
+
+function NameHint({ check }: { check: ReturnType<typeof useNameCheck> }) {
+  if (check.status === 'checking') {
+    return (
+      <span id="name-hint" className="flex items-center gap-1.5 text-xs text-muted">
+        <LoaderCircle className="size-3.5 animate-spin" /> Conferindo se o nome está livre…
+      </span>
+    )
+  }
+  if (check.status === 'available') {
+    return (
+      <span id="name-hint" className="flex items-center gap-1.5 text-xs font-semibold text-green-700">
+        <CircleCheck className="size-3.5" /> {check.message}
+      </span>
+    )
+  }
+  if (check.status === 'taken') {
+    return (
+      <span id="name-hint" role="alert" className="flex items-center gap-1.5 text-xs font-semibold text-brand-700">
+        <CircleX className="size-3.5 shrink-0" /> {check.message}
+      </span>
+    )
+  }
+  return (
+    <span id="name-hint" className="text-xs text-muted">
+      É esse nome que aparece na votação do Awards. Dois Lucas? Use “Lucas B.” 😉
+    </span>
   )
 }

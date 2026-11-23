@@ -7,8 +7,10 @@ import { AccountPage } from './pages/AccountPage'
 import { AwardsPage } from './pages/AwardsPage'
 import { CheckinPage } from './pages/CheckinPage'
 import { EventPage } from './pages/EventPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { TicketPage } from './pages/TicketPage'
 
 function ScrollToTop() {
@@ -32,6 +34,8 @@ export default function App() {
               <Route path="ingresso" element={<TicketPage />} />
               <Route path="conta" element={<AccountPage />} />
               <Route path="entrar" element={<LoginPage />} />
+              <Route path="esqueci-senha" element={<ForgotPasswordPage />} />
+              <Route path="redefinir-senha" element={<ResetPasswordPage />} />
               <Route path="checkin/:code" element={<CheckinPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>

@@ -30,12 +30,31 @@ class User(Base):
     # Versão normalizada do nome (sem acento/maiúsculas): garante unicidade e é usada no login.
     name_key: Mapped[str] = mapped_column(String(30), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    # Sempre em minúsculas. Opcional no banco só para contas antigas; o cadastro exige.
+    email: Mapped[str | None] = mapped_column(String(254), unique=True)
+    # Tokens de login emitidos antes disso deixam de valer (troca de senha desloga tudo).
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # False = a pessoa "saiu da votação": continua votando, mas não concorre.
     awards_opt_in: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
     # Par declarado. Vira casal (e concorre a "Melhor casal") só quando é recíproco.
     partner_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PasswordResetToken(Base):
+    """Link de "esqueci minha senha". Guardamos só o hash: o token em si vai no e-mail."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

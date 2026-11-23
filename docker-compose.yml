@@ -1,5 +1,7 @@
 # Sobe tudo:          docker compose up --build   -> http://localhost:8080
 # Só o banco (dev):   docker compose up -d db
+# Configurações (admin, convite, SMTP...): crie um arquivo .env nesta pasta
+# copiando o .env.example daqui. O Docker Compose lê ele sozinho.
 services:
   db:
     image: postgres:16-alpine
@@ -25,6 +27,14 @@ services:
       ADMIN_NAMES: ${ADMIN_NAMES:-João}
       INVITE_CODE: ${INVITE_CODE:-}
       CORS_ORIGINS: http://localhost:8080
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      # E-mail (recuperação de senha). Sem SMTP_HOST, o link aparece em: docker compose logs api
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
     depends_on:
       db:
         condition: service_healthy

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.models import User
-from app.security import decode_access_token
+from app.security import decode_access_token, token_predates
 
 # tokenUrl aponta para /api/auth/token, o que habilita o botão "Authorize" do Swagger (/api/docs).
 _oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
@@ -16,9 +16,9 @@ DB = Annotated[Session, Depends(get_db)]
 
 
 def get_current_user(token: Annotated[str | None, Depends(_oauth2)], db: DB) -> User:
-    user_id = decode_access_token(token) if token else None
-    user = db.get(User, user_id) if user_id else None
-    if user is None:
+    access = decode_access_token(token) if token else None
+    user = db.get(User, access.user_id) if access else None
+    if user is None or token_predates(access, user.password_changed_at):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Sua sessão expirou. Entra de novo aí!",

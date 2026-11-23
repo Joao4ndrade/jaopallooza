@@ -21,6 +21,20 @@ class Settings(BaseSettings):
     # Origens liberadas no CORS, separadas por vírgula.
     cors_origins: str = "http://localhost:5173"
 
+    # Endereço público do site: é para onde o link do e-mail de recuperação aponta.
+    frontend_url: str = "http://localhost:5173"
+    password_reset_minutes: int = 60
+
+    # SMTP para enviar e-mails. Sem SMTP_HOST, o link de recuperação aparece no log da API.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    # Remetente, ex.: "JAOPALLOOZA <seuemail@gmail.com>". Vazio = usa SMTP_USER.
+    smtp_from: str = ""
+    # "starttls" (porta 587), "ssl" (porta 465) ou "none"
+    smtp_security: str = "starttls"
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, value: str) -> str:

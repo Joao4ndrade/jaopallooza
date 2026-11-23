@@ -11,6 +11,7 @@ from app.models import AwardCategory, CategoryKind, EventInfo, Ticket, User, Vot
 from app.names import normalize_name
 from app.routers.event import build_event
 from app.schemas import (
+    AdminResetPasswordIn,
     CategoryAdminOut,
     CategoryIn,
     CategoryResultOut,
@@ -19,7 +20,6 @@ from app.schemas import (
     EventUpdateIn,
     GuestOut,
     RankingEntry,
-    ResetPasswordIn,
     TicketOut,
 )
 from app.security import hash_password
@@ -151,10 +151,11 @@ def check_in(code: str, db: DB) -> TicketOut:
 
 
 @router.post("/users/reset-password", summary="Redefinir senha de alguém que esqueceu")
-def reset_password(data: ResetPasswordIn, db: DB) -> dict[str, str]:
+def reset_password(data: AdminResetPasswordIn, db: DB) -> dict[str, str]:
     user = db.scalar(select(User).where(User.name_key == normalize_name(data.name)))
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ninguém com esse nome.")
     user.password_hash = hash_password(data.new_password)
+    user.password_changed_at = datetime.now(UTC)
     db.commit()
     return {"detail": f"Senha de {user.name} redefinida."}

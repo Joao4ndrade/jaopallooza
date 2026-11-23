@@ -1,5 +1,6 @@
 import { HeartCrack, LogOut, ShieldCheck, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Mail, TriangleAlert } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { ClaimTicketButton } from '../components/ClaimTicketButton'
@@ -95,6 +96,8 @@ function AccountDetails({ me }: { me: Me }) {
           </div>
         </Card>
 
+        <EmailCard me={me} onChange={setMe} />
+
         <Card>
           <h2 className="text-lg font-extrabold">Concorrendo no Awards</h2>
           {!me.has_ticket ? (
@@ -187,6 +190,76 @@ function AccountDetails({ me }: { me: Me }) {
         Isso apaga sua conta, seu ingresso e todos os seus votos. <strong className="text-ink">Não tem como desfazer.</strong>
       </ConfirmDialog>
     </div>
+  )
+}
+
+function EmailCard({ me, onChange }: { me: Me; onChange: (me: Me) => void }) {
+  const toast = useToast()
+  const [editing, setEditing] = useState(false)
+  const [email, setEmail] = useState(me.email ?? '')
+  const [saving, setSaving] = useState(false)
+
+  async function save(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      onChange(await api<Me>('/me/email', { method: 'PUT', body: { email } }))
+      toast('E-mail salvo! 📬')
+      setEditing(false)
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Não deu pra salvar.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="flex items-center gap-2 text-lg font-extrabold">
+        <Mail className="size-5" aria-hidden /> E-mail de recuperação
+      </h2>
+      {editing ? (
+        <form onSubmit={save} className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+            className="h-11 flex-1 rounded-xl px-4 ring-1 ring-line outline-none focus:ring-2 focus:ring-brand-600"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" loading={saving}>
+              Salvar
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          {me.email ? (
+            <p className="text-muted">{me.email}</p>
+          ) : (
+            <p className="flex items-center gap-2 text-sm font-semibold text-amber-700">
+              <TriangleAlert className="size-4" /> Sem e-mail: se esquecer a senha, não tem como recuperar.
+            </p>
+          )}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setEmail(me.email ?? '')
+              setEditing(true)
+            }}
+          >
+            {me.email ? 'Alterar' : 'Adicionar e-mail'}
+          </Button>
+        </div>
+      )}
+    </Card>
   )
 }
 

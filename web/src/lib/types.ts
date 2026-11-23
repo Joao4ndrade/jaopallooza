@@ -26,6 +26,7 @@ export interface CategoryRef {
 export interface Me {
   id: string
   name: string
+  email: string | null
   is_admin: boolean
   has_ticket: boolean
   awards_opt_in: boolean
