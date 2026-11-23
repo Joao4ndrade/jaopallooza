@@ -344,6 +344,8 @@ docker compose -f docker-compose.prod.yml restart caddy
 
 Os arquivos `deploy/sites/*.caddy` ficam fora do git, então o `git pull` não dá conflito.
 
+> ⚠️ Com outra app pendurada na rede do JAOPALLOOZA, **não rode `docker compose down`** aqui: a rede compartilhada está em uso. Para atualizar, use sempre `up -d --build`.
+
 ### Atualizar depois de mudar o código
 
 ```bash
