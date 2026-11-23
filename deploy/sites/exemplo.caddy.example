@@ -1,0 +1,12 @@
+# Outra app da mesma VPS atendida por este Caddy (com HTTPS automático).
+#
+# 1. Copie para um arquivo .caddy (fica fora do git):
+#      cp deploy/sites/exemplo.caddy.example deploy/sites/agrolife.caddy
+# 2. Troque o domínio e o nome do contêiner abaixo.
+# 3. No docker-compose da outra app, tire o "ports" do serviço web e coloque-o
+#    na rede do JAOPALLOOZA (veja o README, seção "Mais de uma app na VPS").
+# 4. docker compose -f docker-compose.prod.yml restart caddy
+agrolife.seudominio.com.br {
+	encode zstd gzip
+	reverse_proxy agrolife-nginx-1:80
+}

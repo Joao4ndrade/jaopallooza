@@ -309,6 +309,41 @@ Para restaurar um backup:
 gunzip -c backups/ARQUIVO.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U postgres jaopallooza
 ```
 
+### Mais de uma app na VPS
+
+Só um programa pode usar as portas 80/443. Aqui quem fica com elas é o Caddy, que atende o JAOPALLOOZA **e** as outras apps, cada uma no seu domínio (todas com HTTPS). Exemplo com uma app `agrolife` que hoje ocupa a porta 80:
+
+1. No `docker-compose` **da outra app**, no serviço web: apague o `ports:` e coloque-o na rede do JAOPALLOOZA:
+
+```yaml
+services:
+  nginx:
+    # ports: ["80:80"]   <- remover
+    networks: [default, jaopallooza]
+
+networks:
+  jaopallooza:
+    external: true
+    name: jaopallooza_default
+```
+
+2. Crie o site no Caddy e troque domínio e contêiner dentro do arquivo:
+
+```bash
+cp deploy/sites/exemplo.caddy.example deploy/sites/agrolife.caddy
+nano deploy/sites/agrolife.caddy
+```
+
+3. Suba o JAOPALLOOZA primeiro (ele cria a rede), depois recrie a outra app e reinicie o Caddy:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+(cd /caminho/da/outra/app && docker compose up -d)
+docker compose -f docker-compose.prod.yml restart caddy
+```
+
+Os arquivos `deploy/sites/*.caddy` ficam fora do git, então o `git pull` não dá conflito.
+
 ### Atualizar depois de mudar o código
 
 ```bash

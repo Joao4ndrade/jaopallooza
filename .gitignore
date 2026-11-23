@@ -23,3 +23,6 @@ Thumbs.db
 
 # Backups do banco (deploy/backup.sh)
 backups/
+
+# Sites extras do Caddy (específicos de cada VPS)
+deploy/sites/*.caddy
