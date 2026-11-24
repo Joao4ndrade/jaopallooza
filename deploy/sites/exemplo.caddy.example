@@ -4,8 +4,8 @@
 #      cp deploy/sites/exemplo.caddy.example deploy/sites/agrolife.caddy
 # 2. Troque o endereço e o nome do contêiner abaixo.
 #    Sem domínio: agrolife.IP-COM-TRACOS.sslip.io (ex.: agrolife.203-0-113-10.sslip.io)
-# 3. No docker-compose da outra app, tire o "ports" do serviço web e coloque-o
-#    na rede do JAOPALLOOZA (veja o README, seção "Mais de uma app na VPS").
+# 3. No docker-compose da outra app, tire o "ports" do serviço web e coloque SÓ ele
+#    na rede "caddy_proxy" (veja o README, seção "Mais de uma app na VPS").
 # 4. docker compose -f docker-compose.prod.yml restart caddy
 agrolife.203-0-113-10.sslip.io {
 	encode zstd gzip

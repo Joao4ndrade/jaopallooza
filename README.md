@@ -275,6 +275,14 @@ Preencha `DOMAIN`, `POSTGRES_PASSWORD`, `JWT_SECRET` e o SMTP (veja [E-mail de r
 
 ### 5. Subir
 
+Na primeira vez, crie a rede que o Caddy usa para falar com as apps (só uma vez por VPS):
+
+```bash
+docker network create caddy_proxy
+```
+
+E suba:
+
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
@@ -311,40 +319,44 @@ gunzip -c backups/ARQUIVO.sql.gz | docker compose -f docker-compose.prod.yml exe
 
 ### Mais de uma app na VPS
 
-Só um programa pode usar as portas 80/443. Aqui quem fica com elas é o Caddy, que atende o JAOPALLOOZA **e** as outras apps, cada uma no seu domínio (todas com HTTPS). Exemplo com uma app `agrolife` que hoje ocupa a porta 80:
+Só um programa pode usar as portas 80/443. Aqui quem fica com elas é o Caddy, que atende o JAOPALLOOZA **e** as outras apps, cada uma no seu domínio (todas com HTTPS).
 
-1. No `docker-compose` **da outra app**, no serviço web: apague o `ports:` e coloque-o na rede do JAOPALLOOZA:
+O Caddy encontra as outras apps pela rede `caddy_proxy`. **Só o serviço que serve o site** de cada app entra nela (nunca a API ou o banco): assim não existem dois serviços com o mesmo nome (ex.: duas `api`) na mesma rede, o que faria o Docker confundir uma app com a outra.
+
+Exemplo com uma app `agrolife` que hoje ocupa a porta 80:
+
+1. No `docker-compose` **da outra app**, no serviço que serve o site: apague o `ports:` e coloque-o na rede `caddy_proxy`:
 
 ```yaml
 services:
   nginx:
     # ports: ["80:80"]   <- remover
-    networks: [default, jaopallooza]
+    networks:
+      - default
+      - proxy
 
 networks:
-  jaopallooza:
+  proxy:
     external: true
-    name: jaopallooza_default
+    name: caddy_proxy
 ```
 
-2. Crie o site no Caddy e troque domínio e contêiner dentro do arquivo:
+2. Crie o site no Caddy e troque o endereço e o nome do contêiner dentro do arquivo:
 
 ```bash
 cp deploy/sites/exemplo.caddy.example deploy/sites/agrolife.caddy
 nano deploy/sites/agrolife.caddy
 ```
 
-3. Suba o JAOPALLOOZA primeiro (ele cria a rede), depois recrie a outra app e reinicie o Caddy:
+3. Crie a rede (se ainda não existir), recrie a outra app (ela larga a porta 80) e suba o JAOPALLOOZA:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker network create caddy_proxy
 (cd /caminho/da/outra/app && docker compose up -d)
-docker compose -f docker-compose.prod.yml restart caddy
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Os arquivos `deploy/sites/*.caddy` ficam fora do git, então o `git pull` não dá conflito.
-
-> ⚠️ Com outra app pendurada na rede do JAOPALLOOZA, **não rode `docker compose down`** aqui: a rede compartilhada está em uso. Para atualizar, use sempre `up -d --build`.
+Os arquivos `deploy/sites/*.caddy` ficam fora do git, então o `git pull` não dá conflito. Depois de criar ou mudar um deles, rode `docker compose -f docker-compose.prod.yml restart caddy`.
 
 ### Atualizar depois de mudar o código
 

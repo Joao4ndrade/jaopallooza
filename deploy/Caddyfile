@@ -10,7 +10,7 @@
 		-Server
 	}
 
-	reverse_proxy web:80
+	reverse_proxy jaopallooza-web:80
 }
 
 # Outros sites da mesma VPS (opcional): cada arquivo deploy/sites/*.caddy vira um site.

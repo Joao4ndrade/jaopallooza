@@ -1,6 +1,7 @@
 # Produção (VPS) com HTTPS automático. Passo a passo no README, seção "Colocando no ar".
 #
 #   cp deploy/production.env.example .env      # e preencha os valores
+#   docker network create caddy_proxy          # só na primeira vez
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
 # Diferenças para o docker-compose.yml de desenvolvimento:
@@ -47,6 +48,11 @@ services:
   web:
     build: ./web
     restart: unless-stopped
+    networks:
+      default:
+        # Nome único para o Caddy achar este site sem confundir com o de outra app
+        aliases:
+          - jaopallooza-web
     depends_on:
       - api
 
@@ -64,6 +70,11 @@ services:
       - ./deploy/sites:/etc/caddy/sites:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      # Rede neutra onde o Caddy encontra as OUTRAS apps da VPS (só os fronts delas
+      # entram aqui; nada de "api" ou banco, para não haver nomes repetidos).
+      - proxy
     depends_on:
       - web
 
@@ -71,3 +82,8 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+
+networks:
+  proxy:
+    external: true
+    name: caddy_proxy
