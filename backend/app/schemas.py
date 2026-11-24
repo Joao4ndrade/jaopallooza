@@ -75,6 +75,7 @@ class PersonOut(BaseModel):
 
     id: uuid.UUID
     name: str
+    photo_url: str | None = None
 
 
 class CategoryRef(BaseModel):
@@ -87,6 +88,7 @@ class MeOut(BaseModel):
     id: uuid.UUID
     name: str
     email: str | None
+    photo_url: str | None
     is_admin: bool
     has_ticket: bool
     awards_opt_in: bool
@@ -141,11 +143,16 @@ class TicketOut(BaseModel):
 # ---------- awards ----------
 
 
+class MemberOut(BaseModel):
+    name: str
+    photo_url: str | None
+
+
 class NomineeOut(BaseModel):
     # Para categorias individuais é o id da pessoa; para "casal", o id do casal.
     id: uuid.UUID
     name: str
-    members: list[str]
+    members: list[MemberOut]
 
 
 class MyVoteOut(BaseModel):

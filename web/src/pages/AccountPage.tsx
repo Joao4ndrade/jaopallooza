@@ -1,6 +1,5 @@
-import { HeartCrack, LogOut, ShieldCheck, Trash2 } from 'lucide-react'
-import { Mail, TriangleAlert } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { Camera, HeartCrack, LogOut, Mail, ShieldCheck, Trash2, TriangleAlert } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { ClaimTicketButton } from '../components/ClaimTicketButton'
@@ -10,6 +9,7 @@ import { buttonClass } from '../components/button-class'
 import { Button, Card, PageHeader, PageLoader } from '../components/ui'
 import { api, ApiError } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
+import { preparePhoto } from '../lib/preparePhoto'
 import type { Me, Person } from '../lib/types'
 
 type Dialog = 'leave-awards' | 'delete' | null
@@ -83,18 +83,7 @@ function AccountDetails({ me }: { me: Me }) {
       <PageHeader title="Conta" />
 
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 md:mx-0 md:px-10">
-        <Card className="flex items-center gap-4">
-          <Avatar name={me.name} size="lg" />
-          <div className="min-w-0">
-            <p className="truncate text-2xl font-extrabold">{me.name}</p>
-            <div className="mt-1 flex flex-wrap gap-2 text-xs font-bold">
-              <span className={`rounded-full px-2.5 py-1 ${me.has_ticket ? 'bg-ink text-white' : 'bg-surface text-muted'}`}>
-                {me.has_ticket ? '🎟️ Ingresso garantido' : 'Sem ingresso'}
-              </span>
-              {me.is_admin && <span className="rounded-full bg-brand-600 px-2.5 py-1 text-white">Organização</span>}
-            </div>
-          </div>
-        </Card>
+        <ProfileCard me={me} onChange={setMe} />
 
         <EmailCard me={me} onChange={setMe} />
 
@@ -190,6 +179,109 @@ function AccountDetails({ me }: { me: Me }) {
         Isso apaga sua conta, seu ingresso e todos os seus votos. <strong className="text-ink">Não tem como desfazer.</strong>
       </ConfirmDialog>
     </div>
+  )
+}
+
+function ProfileCard({ me, onChange }: { me: Me; onChange: (me: Me) => void }) {
+  const toast = useToast()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<{ blob: Blob; url: string } | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const openPicker = () => inputRef.current?.click()
+
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite escolher a mesma foto de novo
+    if (!file) return
+    try {
+      const blob = await preparePhoto(file)
+      setPreview({ blob, url: URL.createObjectURL(blob) })
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Não deu pra abrir essa foto.', 'error')
+    }
+  }
+
+  function closePreview() {
+    if (preview) URL.revokeObjectURL(preview.url)
+    setPreview(null)
+  }
+
+  async function save() {
+    if (!preview) return
+    const form = new FormData()
+    form.append('file', preview.blob, 'foto.jpg')
+    setSaving(true)
+    try {
+      onChange(await api<Me>('/me/photo', { method: 'PUT', body: form }))
+      toast('Foto atualizada! 📸')
+      closePreview()
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Não deu pra salvar a foto.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function remove() {
+    setSaving(true)
+    try {
+      onChange(await api<Me>('/me/photo', { method: 'DELETE' }))
+      toast('Foto removida.')
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Não deu pra remover a foto.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="flex items-center gap-4">
+      <button
+        type="button"
+        onClick={openPicker}
+        aria-label={me.photo_url ? 'Trocar foto de perfil' : 'Adicionar foto de perfil'}
+        className="relative shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+      >
+        <Avatar name={me.name} photoUrl={me.photo_url} size="lg" />
+        <span className="absolute -right-1 -bottom-1 grid size-8 place-items-center rounded-full bg-brand-600 text-white ring-4 ring-white">
+          <Camera className="size-4" aria-hidden />
+        </span>
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+      <div className="min-w-0">
+        <p className="truncate text-2xl font-extrabold">{me.name}</p>
+        <div className="mt-1 flex flex-wrap gap-2 text-xs font-bold">
+          <span className={`rounded-full px-2.5 py-1 ${me.has_ticket ? 'bg-ink text-white' : 'bg-surface text-muted'}`}>
+            {me.has_ticket ? '🎟️ Ingresso garantido' : 'Sem ingresso'}
+          </span>
+          {me.is_admin && <span className="rounded-full bg-brand-600 px-2.5 py-1 text-white">Organização</span>}
+        </div>
+        {me.photo_url ? (
+          <button type="button" onClick={remove} disabled={saving} className="mt-2 text-xs font-semibold text-muted hover:text-brand-600 hover:underline">
+            Remover foto
+          </button>
+        ) : (
+          <button type="button" onClick={openPicker} className="mt-2 text-xs font-semibold text-brand-600 hover:underline">
+            📸 Adicionar foto
+          </button>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={preview !== null}
+        title="Usar esta foto?"
+        confirmLabel="Salvar foto"
+        cancelLabel="Cancelar"
+        loading={saving}
+        onConfirm={save}
+        onCancel={closePreview}
+      >
+        {preview && <img src={preview.url} alt="Prévia da foto de perfil" className="mx-auto mt-2 size-40 rounded-full object-cover" />}
+        <p className="mt-3 text-center text-sm">Ela aparece pra galera no Awards e na lista de presenças.</p>
+      </ConfirmDialog>
+    </Card>
   )
 }
 
@@ -298,7 +390,7 @@ function PartnerCard({ me, onChange }: { me: Me; onChange: (me: Me) => void }) {
 
       {me.partner_requests.map((p) => (
         <div key={p.id} className="mt-4 flex items-center gap-3 rounded-2xl bg-brand-50 p-3">
-          <Avatar name={p.name} size="sm" />
+          <Avatar name={p.name} photoUrl={p.photo_url} size="sm" />
           <p className="flex-1 text-sm">
             <strong>{p.name}</strong> escolheu você como par!
           </p>
@@ -311,8 +403,8 @@ function PartnerCard({ me, onChange }: { me: Me; onChange: (me: Me) => void }) {
       {me.partner && (
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-surface p-3">
           <span className="flex -space-x-3">
-            <Avatar name={me.name} size="sm" />
-            <Avatar name={me.partner.name} size="sm" />
+            <Avatar name={me.name} photoUrl={me.photo_url} size="sm" className="ring-2 ring-surface" />
+            <Avatar name={me.partner.name} photoUrl={me.partner.photo_url} size="sm" className="ring-2 ring-surface" />
           </span>
           <p className="flex-1 text-sm">
             {me.partner_status === 'confirmed' ? (

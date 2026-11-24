@@ -6,10 +6,10 @@ Responsivo de verdade: **sidebar no desktop** e **barra inferior no celular**, c
 
 | Aba | O que tem |
 | --- | --- |
-| **Evento** | Cartaz, data, horário, local e descrição (tudo “Em breve” até ser definido) + botão **Garanta seu ingresso** |
+| **Evento** | Cartaz, data, horário, local e descrição (tudo “Em breve” até ser definido) + botão **Garanta seu ingresso** + lista **Quem vai** (nomes e fotos só para quem tem conta) |
 | **Awards** | Uma categoria por vez, navegando por *swipe*, setas laterais `<` `>` ou setas do teclado. Um voto por categoria, sem volta |
 | **Ingresso** | Carteira com o ingresso e o QR code da entrada (ou o botão de garantir, se ainda não tiver) |
-| **Conta** | Nome, e-mail, categorias em que concorre, escolha de par (pra categoria de casal), sair da votação, sair da conta e cancelar presença |
+| **Conta** | Foto de perfil, nome, e-mail, categorias em que concorre, escolha de par (pra categoria de casal), sair da votação, sair da conta e cancelar presença |
 
 **O ingresso é da conta:** quem chega sem conta vê o aviso *“Faça o login ou crie sua conta para garantir seu ingresso”*, e **cada conta garante um único QR code**. A conta tem **nome, e-mail e senha**: o login aceita nome **ou** e-mail, o cadastro avisa na hora se o nome já está em uso e dá pra **recuperar a senha por e-mail**.
 
@@ -211,7 +211,7 @@ Exemplo de `PUT /api/admin/event`:
 
 ```powershell
 cd backend
-uv run pytest            # 43 testes contra Postgres (banco jaopallooza_test)
+uv run pytest            # 55 testes contra Postgres (banco jaopallooza_test)
 uv run ruff check .
 
 cd ..\web

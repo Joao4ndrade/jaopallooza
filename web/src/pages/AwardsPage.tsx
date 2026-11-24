@@ -323,7 +323,7 @@ function CategorySlide({ category, canVote, selected, onSelect, onNext }: SlideP
                   >
                     <span className="flex -space-x-3">
                       {nominee.members.map((m) => (
-                        <Avatar key={m} name={m} />
+                        <Avatar key={m.name} name={m.name} photoUrl={m.photo_url} className="ring-2 ring-white" />
                       ))}
                     </span>
                     <span className="flex-1 font-bold">{nominee.name}</span>

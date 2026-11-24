@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException, status
+import secrets
+
+from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.deps import DB, CurrentUser, is_admin
-from app.models import Ticket, User
+from app.models import Ticket, User, UserPhoto
 from app.schemas import AwardsParticipationIn, EmailUpdateIn, MeOut, PartnerIn, PersonOut
-from app.services import awards
+from app.services import awards, photos
 
 router = APIRouter(prefix="/me", tags=["conta"])
 
@@ -29,6 +31,7 @@ def build_me(db: Session, user: User) -> MeOut:
         id=user.id,
         name=user.name,
         email=user.email,
+        photo_url=user.photo_url,
         is_admin=is_admin(user),
         has_ticket=awards.has_ticket(db, user.id),
         awards_opt_in=user.awards_opt_in,
@@ -51,6 +54,37 @@ def set_email(data: EmailUpdateIn, user: CurrentUser, db: DB) -> MeOut:
     if taken:
         raise HTTPException(status.HTTP_409_CONFLICT, "Esse e-mail já está em outra conta.")
     user.email = data.email
+    db.commit()
+    return build_me(db, user)
+
+
+@router.put("/photo", summary="Enviar ou trocar a foto de perfil")
+def upload_photo(file: UploadFile, user: CurrentUser, db: DB) -> MeOut:
+    raw = file.file.read(photos.MAX_UPLOAD_BYTES + 1)
+    if len(raw) > photos.MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE, "Foto grande demais (máximo de 8 MB)."
+        )
+    try:
+        data = photos.process_photo(raw)
+    except photos.InvalidImage as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+    record = db.get(UserPhoto, user.id)
+    if record is None:
+        db.add(UserPhoto(user_id=user.id, data=data, content_type=photos.CONTENT_TYPE))
+    else:
+        record.data = data
+        record.content_type = photos.CONTENT_TYPE
+    user.photo_key = secrets.token_urlsafe(16)  # endereço novo: o cache antigo não atrapalha
+    db.commit()
+    return build_me(db, user)
+
+
+@router.delete("/photo", summary="Remover a foto de perfil")
+def delete_photo(user: CurrentUser, db: DB) -> MeOut:
+    db.execute(delete(UserPhoto).where(UserPhoto.user_id == user.id))
+    user.photo_key = None
     db.commit()
     return build_me(db, user)
 

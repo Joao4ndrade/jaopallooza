@@ -63,7 +63,7 @@ function Sidebar() {
       <div className="mt-auto">
         {me ? (
           <NavLink to="/conta" className="flex items-center gap-3 rounded-xl p-2 hover:bg-surface">
-            <Avatar name={me.name} size="sm" />
+            <Avatar name={me.name} photoUrl={me.photo_url} size="sm" />
             <span className="min-w-0">
               <span className="block truncate font-bold">{me.name}</span>
               <span className="block text-xs text-muted">{me.has_ticket ? '🎟️ Ingresso garantido' : 'Sem ingresso ainda'}</span>

@@ -1,14 +1,16 @@
 import { CalendarDays, ChevronRight, Map, MapPin, Share2, Trophy, Users, type LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { Avatar } from '../components/Avatar'
 import { ClaimTicketButton } from '../components/ClaimTicketButton'
 import { LoginNotice } from '../components/LoginNotice'
 import { Poster } from '../components/Poster'
 import { useToast } from '../components/toast-context'
 import { PageLoader } from '../components/ui'
+import { api } from '../lib/api'
 import { useAuth } from '../lib/auth-context'
 import { EM_BREVE, eventWhen, plural } from '../lib/format'
-import type { EventInfo } from '../lib/types'
+import type { EventInfo, Person } from '../lib/types'
 import { useEvent } from '../lib/useEvent'
 
 export function EventPage() {
@@ -54,6 +56,8 @@ export function EventPage() {
               </span>
               <ChevronRight className="size-5 text-white/60" aria-hidden />
             </Link>
+
+            <Attendees count={event.tickets_count} />
           </div>
 
           <aside className="hidden md:block">
@@ -182,5 +186,60 @@ function TicketsCount({ count, className = '' }: { count: number; className?: st
       <Users className="size-4" aria-hidden />
       {plural(count, 'pessoa já garantiu', 'pessoas já garantiram')} ingresso
     </p>
+  )
+}
+
+/** Lista de presenças confirmadas. Só quem tem conta vê nomes e fotos (o site é público). */
+function Attendees({ count }: { count: number }) {
+  const { me, loading } = useAuth()
+  const [people, setPeople] = useState<Person[] | null>(null)
+  const loggedIn = me !== null
+
+  useEffect(() => {
+    if (!loggedIn) return
+    api<Person[]>('/event/attendees')
+      .then(setPeople)
+      .catch(() => setPeople([]))
+  }, [loggedIn])
+
+  return (
+    <section className="mt-10" aria-labelledby="attendees-title">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 id="attendees-title" className="text-2xl font-extrabold">
+          Quem vai 🎉
+        </h2>
+        {count > 0 && <span className="text-sm font-semibold text-muted">{plural(count, 'confirmado', 'confirmados')}</span>}
+      </div>
+
+      {loading ? null : !loggedIn ? (
+        <div className="mt-4 flex items-center gap-4 rounded-2xl bg-surface p-4">
+          <div className="flex -space-x-3" aria-hidden>
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i} className="size-10 rounded-full bg-line ring-2 ring-surface" />
+            ))}
+          </div>
+          <p className="text-sm text-muted">
+            {count > 0 ? `${plural(count, 'pessoa já confirmou', 'pessoas já confirmaram')}. ` : ''}
+            <Link to="/entrar" className="font-semibold text-brand-600 hover:underline">
+              Entre na sua conta
+            </Link>{' '}
+            pra ver quem vai.
+          </p>
+        </div>
+      ) : people === null ? (
+        <p className="mt-4 text-sm text-muted">Carregando a lista…</p>
+      ) : people.length === 0 ? (
+        <p className="mt-4 rounded-2xl bg-surface p-4 text-sm text-muted">Ninguém confirmou ainda. Seja a primeira pessoa! 🚀</p>
+      ) : (
+        <ul className="mt-5 grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-5">
+          {people.map((person) => (
+            <li key={person.id} className="flex min-w-0 flex-col items-center text-center">
+              <Avatar name={person.name} photoUrl={person.photo_url} size="lg" />
+              <span className="mt-2 w-full truncate text-sm font-semibold">{person.id === me?.id ? 'Você' : person.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

@@ -78,7 +78,7 @@ def test_couple_needs_mutual_confirmation(client, make_user):
 
     couple_cat = category(client, carla, "melhor-casal")
     assert nominee_names(couple_cat) == ["Ana & Beto"]
-    assert couple_cat["nominees"][0]["members"] == ["Ana", "Beto"]
+    assert [m["name"] for m in couple_cat["nominees"][0]["members"]] == ["Ana", "Beto"]
     # O próprio casal não aparece como opção para quem está nele
     assert category(client, ana, "melhor-casal")["nominees"] == []
     assert category(client, ana, "melhor-casal")["i_am_nominee"] is True

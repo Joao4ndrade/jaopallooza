@@ -15,6 +15,7 @@ export interface EventInfo {
 export interface Person {
   id: string
   name: string
+  photo_url: string | null
 }
 
 export interface CategoryRef {
@@ -27,6 +28,7 @@ export interface Me {
   id: string
   name: string
   email: string | null
+  photo_url: string | null
   is_admin: boolean
   has_ticket: boolean
   awards_opt_in: boolean
@@ -44,10 +46,15 @@ export interface Ticket {
   checked_in_at: string | null
 }
 
+export interface Member {
+  name: string
+  photo_url: string | null
+}
+
 export interface Nominee {
   id: string
   name: string
-  members: string[]
+  members: Member[]
 }
 
 export interface AwardCategory {

@@ -25,6 +25,11 @@ export const tokenStore = {
   },
 }
 
+/** A API devolve o caminho da foto relativo a ela (ex.: /photos/abc); aqui vira URL. */
+export function photoSrc(path: string): string {
+  return `${BASE_URL}${path}`
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -50,14 +55,16 @@ export async function api<T>(path: string, { method = 'GET', body }: RequestOpti
   const token = tokenStore.get()
   const headers: Record<string, string> = {}
   if (token) headers.Authorization = `Bearer ${token}`
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData (upload de foto): o navegador monta o Content-Type multipart sozinho.
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
 
   let response: Response
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     throw new ApiError(0, 'Sem conexão com o servidor. Tenta de novo?')

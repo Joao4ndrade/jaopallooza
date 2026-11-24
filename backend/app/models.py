@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -40,7 +41,33 @@ class User(Base):
     partner_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
+    # Chave aleatória da foto de perfil: vira o endereço público dela e muda a cada troca
+    # (assim o navegador pode guardar a imagem em cache para sempre).
+    photo_key: Mapped[str | None] = mapped_column(String(32), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def photo_url(self) -> str | None:
+        """Caminho da foto relativo à API (o front prefixa com /api)."""
+        return f"/photos/{self.photo_key}" if self.photo_key else None
+
+
+class UserPhoto(Base):
+    """Foto de perfil já tratada (quadrada, WebP, sem metadados como GPS).
+
+    Fica numa tabela separada para as listas de pessoas não carregarem os bytes das fotos.
+    """
+
+    __tablename__ = "user_photos"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str] = mapped_column(String(40))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class PasswordResetToken(Base):

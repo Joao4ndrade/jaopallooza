@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 
 from app.models import AwardCategory, CategoryKind, Couple, Ticket, User, Vote
-from app.schemas import CategoryOut, CategoryRef, MyVoteOut, NomineeOut
+from app.schemas import CategoryOut, CategoryRef, MemberOut, MyVoteOut, NomineeOut
 
 
 @dataclass(frozen=True)
@@ -35,12 +35,16 @@ class CoupleNominee:
         return NomineeOut(
             id=self.couple.id,
             name=f"{self.first.name} & {self.second.name}",
-            members=[self.first.name, self.second.name],
+            members=[_member(self.first), _member(self.second)],
         )
 
 
+def _member(user: User) -> MemberOut:
+    return MemberOut(name=user.name, photo_url=user.photo_url)
+
+
 def _user_nominee(user: User) -> NomineeOut:
-    return NomineeOut(id=user.id, name=user.name, members=[user.name])
+    return NomineeOut(id=user.id, name=user.name, members=[_member(user)])
 
 
 def _has_ticket_clause(user_id_column):

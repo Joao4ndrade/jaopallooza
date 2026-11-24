@@ -4,7 +4,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import DEFAULT_JWT_SECRET, get_settings
-from app.routers import admin, auth, awards, event, me, tickets
+from app.routers import admin, auth, awards, event, me, photos, tickets
 
 settings = get_settings()
 
@@ -37,7 +37,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-for module in (auth, event, tickets, awards, me, admin):
+for module in (auth, event, tickets, awards, me, photos, admin):
     api.include_router(module.router)
 
 app.include_router(api)
